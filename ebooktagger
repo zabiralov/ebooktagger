@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+
+#set -x
+
+if [[ ! -x $(which exiftool) ]]; then
+	  echo "exiftool not found"
+	  exit 1
+fi
+
+f=$1
+
+if [[ ! -w $f ]]; then
+	  echo "file $1 not writable"
+	  exit 2
+fi
+
+if [[ ! -r $f ]]; then
+    echo "file $1 not readable"
+else
+    md="$(exiftool $f)"
+    echo "========================================================================"
+    echo "$md"
+    echo "========================================================================"
+    echo
+fi
+
+declare oA=$(echo "$md" | awk -F': ' '/^Author/ {print $2}')
+declare oY=$(echo "$md" | awk -F': ' '/^Year/ {print $2}')
+declare oT=$(echo "$md" | awk -F': ' '/^Title/ {print $2}')
+declare oE=$(echo "$md" | awk -F': ' '/^Edition/ {print $2}')
+declare oL=$(echo "$md" | awk -F': ' '/^Language/ {print $2}')
+
+
+fn=$(basename -- "$1")
+e="${fn##*.}"
+f="${fn%.*}"
+
+declare    A=''
+declare    T=''
+declare    S=''
+declare -i Y=''
+declare -i E=''
+declare    L=''
+
+declare    ws=' -overwrite_original '
+declare    nn=''
+
+read -ep "Language(${oL})? "  L
+read -ep "Year(${oY})? "      Y
+read -ep "Author(${oA})? "    A
+read -ep "Title(${oT})? "     T
+read -ep "Edition(${oE})? "   E
+
+# read -ep 'Subject? > '  S
+
+echo "========================================================================"
+
+if [[ -z $L ]]; then
+    L=${oL}
+fi
+echo "Language      : $L"
+ws="-Language=$L"
+nn="$L"
+
+
+if [[ -z $Y ]]; then
+    Y=${oY}
+fi
+echo "Year          : $Y"
+ws="$ws -Year=$Y"
+nn="${nn}-$Y"
+
+
+if [[ -z $A ]]; then
+    A=${oA}
+fi
+echo "Author        : $A"
+ws="$ws -Author=$A"
+nn="${nn}-$A"
+
+
+if [[ -z $T ]]; then
+    T=${oT}
+fi
+echo "Title         : $T"
+ws="$ws -Title=$T"
+nn="${nn}-$T"
+
+
+if [[ -z $E ]]; then
+    E=${oE}
+fi
+echo "Edition       : $E"
+ws="$ws -Edition=$E"
+nn="${nn}-${E}ed"
+
+
+
+echo "========================================================================"
+echo
+
+# if [[ $S ]]; then
+# 	  echo "Subject       : $S"
+# 	  ws="$ws -Subject=$S"
+# fi
+
+while true; do
+	  read -ep 'Write this metadata? (y/n) ' wm
+	  case $wm in
+		    ( [Yy] ) exiftool $ws $fn ; break ;;
+		    ( [Nn] ) echo "Metadata was not saved"; break ;;
+		    ( * ) echo "Please answer 'y' or 'n'" ;;
+	  esac 
+done
+
+while true; do
+	  read -ep 'Rename file? (y/n) ' rf
+	  case $rf in
+		    ( [Yy] ) mv $fn ${nn}.${e} ; break ;;
+		    ( [Nn] ) echo "File was not renamed!"; break ;;
+		    ( * ) echo "Please answer 'y' or 'n'" ;; 
+	  esac
+done
+
+exit 0
